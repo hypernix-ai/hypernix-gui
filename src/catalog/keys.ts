@@ -1,0 +1,161 @@
+import type { Section } from "./types";
+import { list, num, path, pick, secret, text, toggle } from "./shared";
+
+const TYPES = ["", "user", "dev", "service", "session", "admin"];
+
+export const keysSection: Section = {
+  id: "keys",
+  title: "Keys · gkey",
+  icon: "key",
+  blurb: "Gatekeeper + Keymaster: mint, list, rotate, revoke, export and import T1 API keys, including v2.1 daily keys.",
+  groups: [
+    {
+      title: "Keys",
+      commands: [
+        {
+          id: "gkey-create",
+          title: "Create key",
+          summary: "Generate a T1 API key: v1, v2, v2short, or a v2.1 T2C key with its T2CK kit.",
+          icon: "plus",
+          program: "gkey",
+          base: ["create"],
+          doc: "wiki/T1-API.md#v21-t2c-keys-and-rotorvault",
+          keywords: "gkey new key t2c v2.1",
+          fields: [
+            pick("version", "-v", "Key format", [
+              { value: "", label: "v1 (default)" },
+              { value: "v2", label: "v2" },
+              { value: "v2short", label: "v2short" },
+              { value: "v2.1", label: "v2.1 · daily T2C" },
+            ]),
+            pick("type", "--type", "Type", TYPES),
+            num("level", "--level", "Access level", { min: 1, max: 9, placeholder: "1", showIf: (v) => String(v.version ?? "").startsWith("v2") }),
+            text("scopes", "--scopes", "Scopes", { placeholder: "read,write" }),
+            text("prefix", "--prefix", "Label"),
+            text("expires", "--expires", "Expires", { placeholder: "YYYY-MM-DD" }),
+            text("note", "--note", "Note", { wide: true }),
+            num("cap", "--cap", "Token cap", { advanced: true }),
+            num("limit", "--limit", "Request limit", { advanced: true }),
+            list("tags", "--tags", "Tags", "space", { advanced: true, placeholder: "team=ml" }),
+            num("bodyLen", "--body-len", "Body length", { advanced: true, placeholder: "24", min: 16 }),
+            num("rotation", "--rotation-window", "Auto-rotate window h", { advanced: true, placeholder: "24" }),
+            secret("password", "--password", "Admin password", { advanced: true, help: "Generated when omitted." }),
+            toggle("word", "--word", "Memorable word in password", { advanced: true }),
+            text("configSource", "-Con", "Identity from config", { advanced: true, placeholder: "host, URL or path" }),
+          ],
+        },
+        {
+          id: "gkey-list",
+          title: "List keys",
+          summary: "Every key, or the detail of one.",
+          icon: "checklist",
+          program: "gkey",
+          base: ["list"],
+          fields: [
+            text("id", undefined, "Key id (detail)", { positional: true, placeholder: "id <key-id>" }),
+            pick("type", "--type", "Type", TYPES),
+            text("scope", "--scope", "Scope"),
+            toggle("all", "--all", "Include expired"),
+            toggle("json", "--json", "JSON", { advanced: true }),
+          ],
+        },
+        {
+          id: "gkey-rotate",
+          title: "Rotate key",
+          summary: "Replace a key with a fresh one.",
+          icon: "restart",
+          program: "gkey",
+          base: ["rotate"],
+          fields: [text("id", undefined, "Key id", { positional: true, required: true })],
+        },
+        {
+          id: "gkey-revoke",
+          title: "Revoke key",
+          summary: "Revoke a key permanently.",
+          icon: "xCircle",
+          program: "gkey",
+          base: ["revoke"],
+          confirm: "Revoke this key? Anything using it stops working.",
+          fields: [
+            text("id", undefined, "Key id", { positional: true, required: true }),
+            text("reason", "--reason", "Reason"),
+          ],
+        },
+      ],
+    },
+    {
+      title: "Limits & audit",
+      commands: [
+        {
+          id: "gkey-stats",
+          title: "Usage stats",
+          summary: "Usage statistics and access logs.",
+          icon: "chart",
+          program: "gkey",
+          base: ["stats"],
+          fields: [
+            text("key", "--key", "Key id"),
+            num("log", "--log", "Last N log entries"),
+            toggle("json", "--json", "JSON", { advanced: true }),
+          ],
+        },
+        {
+          id: "gkey-quota",
+          title: "Quota",
+          summary: "View or set rate-limit quotas.",
+          icon: "gauge",
+          program: "gkey",
+          base: ["quota"],
+          fields: [
+            text("key", "--key", "Key id", { required: true }),
+            text("set", "--set", "Set", { placeholder: "max-requests=N,max-tokens=N,window=N" }),
+          ],
+        },
+        {
+          id: "gkey-permissions",
+          title: "Permissions",
+          summary: "Permission scopes for a key.",
+          icon: "shield",
+          program: "gkey",
+          base: ["permissions"],
+          fields: [text("key", "--key", "Key id", { required: true })],
+        },
+      ],
+    },
+    {
+      title: "Transfer",
+      commands: [
+        {
+          id: "gkey-export",
+          title: "Export",
+          summary: "Export one key, or all, to JSON.",
+          icon: "upload",
+          program: "gkey",
+          base: ["export"],
+          fields: [
+            text("key", "--key", "Key id", { placeholder: "all" }),
+            path("out", "--out", "File", "save", { extensions: ["json"] }),
+          ],
+        },
+        {
+          id: "gkey-import",
+          title: "Import",
+          summary: "Import keys from a JSON file.",
+          icon: "download",
+          program: "gkey",
+          base: ["import"],
+          fields: [path("file", undefined, "File", "file", { positional: true, required: true, extensions: ["json"] })],
+        },
+        {
+          id: "gkey-version",
+          title: "Versions",
+          summary: "HyperNix, T1 API and key-format versions.",
+          icon: "info",
+          program: "gkey",
+          base: ["version"],
+          fields: [toggle("json", "--json", "JSON")],
+        },
+      ],
+    },
+  ],
+};
